@@ -53,14 +53,6 @@ def least_constraining_value(assignment, _):
     return sorted_unused_classes[0]
 
 
-def constraint_propagation(assignment, slot):
-    unused_classes, _ = get_unused_classes_and_teachers(assignment)
-    # set classrom each one in unused_classes if no classroom found then skip class
-    domain = [*unused_classes, *slot]
-    # domain->filter each constraint return domain' => new slot
-
-
-
 def forward_checking(assignment, slot):
     unused_classes, _ = get_unused_classes_and_teachers(assignment)
     appropriate_classes = list(
@@ -79,26 +71,49 @@ def get_unused_classes_and_teachers(assignment):
     return unused_classes, teachers_map
 
 
+def constraint_propagation(assignment, slot):
+    # domain = [*unused_classes, *slot]
+    unused_classes, _ = get_unused_classes_and_teachers(assignment)
+    get_classroom = classroom_manager()
+
+    # reducing domain with constraints
+    for unused_class in unused_classes:
+        classroom = get_classroom(slot, unused_class.subject.num_of_students)
+        if classroom: # != None
+            unused_class.classroom = classroom
+            slot.append(unused_class)
+            # domain->filter each constraint return domain' => new slot
+            if subject_collision_check(slot) and groups_collision_check(slot):
+                assignment[unused_class] = True
+            else:
+                slot.pop()
+    return slot
+
+
 def backtracking(assignment, csp, heuristic, num_of_epochs):
     get_next_slot, set_slot = get_next_time_slot(csp[VARIABLES])
     get_classroom = classroom_manager()
 
     for i in range(num_of_epochs):
         if is_complete(assignment):
-            return csp[VARIABLES], i
+            return csp[VARIABLES], i//25
 
         slot = get_next_slot()
-        class_ = heuristic(assignment, slot)
-        classroom = get_classroom(slot, class_.subject.num_of_students)
-        slot.append(class_)
-        class_.classroom = classroom
-
-        if is_consistent(slot, csp[CONSTRAINTS]):
-            assignment[class_] = True
-            set_slot(slot)
+        res = heuristic(assignment, slot)
+        if isinstance(res, list):
+            set_slot(res)
         else:
-            assignment[class_] = False
-    return csp[VARIABLES], num_of_epochs
+            class_ = res
+            classroom = get_classroom(slot, class_.subject.num_of_students)
+            slot.append(class_)
+            class_.classroom = classroom
+
+            if is_consistent(slot, csp[CONSTRAINTS]):
+                assignment[class_] = True
+                set_slot(slot)
+            else:
+                assignment[class_] = False
+    return csp[VARIABLES], num_of_epochs//25
 
 
 def get_next_time_slot(variables):
@@ -126,7 +141,16 @@ csp = {
     DOMAINS: set_up_domains(),
     CONSTRAINTS: get_constraints()
 }
-for_pretty, epochs = backtracking(assignment=init_assignment(csp), csp=csp, heuristic=forward_checking,
-                                  num_of_epochs=1000)
-print_pretty_matrix(for_pretty)
-print(f'Num of epochs: {epochs}')
+
+heuristcs = [MRV,power_heuristic, least_constraining_value, forward_checking, constraint_propagation]
+for heuristic in heuristcs:
+    csp = {
+        VARIABLES: set_up_variables(),
+        DOMAINS: set_up_domains(),
+        CONSTRAINTS: get_constraints()
+    }
+    for_pretty, epochs = backtracking(assignment=init_assignment(csp), csp=csp, heuristic=heuristic,
+                                      num_of_epochs=1000)
+    print(f'{heuristic.__name__} {epochs}')
+    # print_pretty_matrix(for_pretty)
+

@@ -28,20 +28,20 @@ def set_up_domains():
 
 
 def capacity_check(slot):
-    classrooms, cur_teachers = set(), set()
+    classrooms = set()
     for c in slot:
         if c.subject.num_of_students > c.classroom.capacity:
             return False
-        cur_teachers.add(c.subject.teacher)
         classrooms.add(c.classroom)
-    return len(cur_teachers) == len(slot) and len(classrooms) == len(slot)
+    return  len(classrooms) == len(slot)
 
 
 def subject_collision_check(slot):
-    classnames = set()
+    classnames,cur_teachers = set(),set()
     for class_ in slot:
         classnames.add(class_.subject.name)
-    return len(slot) == len(classnames)
+        cur_teachers.add(class_.subject.teacher)
+    return len(slot) == len(classnames) and len(cur_teachers) == len(slot)
 
 
 def groups_collision_check(slot):
