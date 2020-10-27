@@ -53,6 +53,14 @@ def least_constraining_value(assignment, _):
     return sorted_unused_classes[0]
 
 
+def constraint_propagation(assignment, slot):
+    unused_classes, _ = get_unused_classes_and_teachers(assignment)
+    # set classrom each one in unused_classes if no classroom found then skip class
+    domain = [*unused_classes, *slot]
+    # domain->filter each constraint return domain' => new slot
+
+
+
 def forward_checking(assignment, slot):
     unused_classes, _ = get_unused_classes_and_teachers(assignment)
     appropriate_classes = list(
